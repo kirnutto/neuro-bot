@@ -61,6 +61,29 @@ def get_module_back_kb():
         ]
     )
 
+def get_lesson_menu_kb(mod_id: str):
+    """Interactive buttons inside a lesson."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📝 Конспект урока", callback_data=f"lesson_content_{mod_id}")],
+            [InlineKeyboardButton(text="🎯 Домашнее задание", callback_data=f"lesson_hw_{mod_id}")],
+            [InlineKeyboardButton(text="🤖 Задать вопрос по теме", callback_data=f"lesson_ask_{mod_id}")],
+            [
+                InlineKeyboardButton(text="← К модулям", callback_data="menu_materials"),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu_back"),
+            ],
+        ]
+    )
+
+def get_lesson_back_kb(mod_id: str):
+    """Back to lesson menu from content/hw view."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="← Назад к уроку", callback_data=f"mod_{mod_id}")],
+            [InlineKeyboardButton(text="← К модулям", callback_data="menu_materials")],
+        ]
+    )
+
 def get_admin_main_kb():
     return ReplyKeyboardMarkup(
         keyboard=[

@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from keyboards import get_student_main_kb, get_materials_inline_kb, get_main_inline_kb, get_back_btn, get_module_back_kb
+from keyboards import get_student_main_kb, get_materials_inline_kb, get_main_inline_kb, get_back_btn, get_module_back_kb, get_lesson_menu_kb, get_lesson_back_kb
 from database import add_user, log_action
 from data import COURSE_CURRICULUM
 from ai_helper import get_ai_response
@@ -171,20 +171,89 @@ async def module_callback(callback: CallbackQuery):
         await callback.answer("Модуль не найден.")
         return
 
-    text = f"📖 *{mod_data['title']}*\n\n"
-    text += f"_{mod_data['description']}_\n\n"
+    # Show module overview + interactive buttons
+    lessons_list = "\n".join(
+        f"🔹 {lesson['title']}" for lesson in mod_data["lessons"]
+    )
+    text = (
+        f"📖 *{mod_data['title']}*\n\n"
+        f"_{mod_data['description']}_\n\n"
+        f"*Уроки:*\n{lessons_list}\n\n"
+        f"👇 Выбери, что хочешь сделать:"
+    )
 
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=get_lesson_menu_kb(mod_id)
+    )
+    await callback.answer()
+
+# ───────────────────────── КНОПКИ ВНУТРИ УРОКА ─────────────────────────
+
+@router.callback_query(F.data.startswith("lesson_content_"))
+async def lesson_content(callback: CallbackQuery):
+    mod_id = callback.data.replace("lesson_content_", "mod_")
+    mod_data = COURSE_CURRICULUM.get(mod_id)
+    if not mod_data:
+        await callback.answer("Модуль не найден.")
+        return
+
+    text = f"📝 *Конспект — {mod_data['title']}*\n\n"
     for lesson in mod_data["lessons"]:
-        text += f"🔹 *{lesson['title']}*\n{lesson['content']}\n\n"
+        text += f"*{lesson['title']}*\n{lesson['content']}\n\n"
 
-    # Telegram limit is 4096 chars — truncate if needed
     if len(text) > 4000:
         text = text[:3990] + "\n\n_...продолжение на занятии_ 📌"
 
     await callback.message.edit_text(
         text,
         parse_mode="Markdown",
-        reply_markup=get_module_back_kb()
+        reply_markup=get_lesson_back_kb(mod_id)
+    )
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("lesson_hw_"))
+async def lesson_hw(callback: CallbackQuery):
+    mod_id = callback.data.replace("lesson_hw_", "mod_")
+    mod_data = COURSE_CURRICULUM.get(mod_id)
+    if not mod_data:
+        await callback.answer("Модуль не найден.")
+        return
+
+    hw_list = []
+    for lesson in mod_data["lessons"]:
+        if lesson.get("homework"):
+            hw_list.append(f"*{lesson['title']}*\n{lesson['homework']}")
+
+    if hw_list:
+        text = f"🎯 *Домашнее задание — {mod_data['title']}*\n\n" + "\n\n".join(hw_list)
+    else:
+        text = f"🎯 *{mod_data['title']}*\n\nДомашнее задание будет добавлено преподавателем после занятия. 📌"
+
+    if len(text) > 4000:
+        text = text[:3990] + "\n\n_...продолжение_ 📌"
+
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=get_lesson_back_kb(mod_id)
+    )
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("lesson_ask_"))
+async def lesson_ask(callback: CallbackQuery, state: FSMContext):
+    mod_id = callback.data.replace("lesson_ask_", "mod_")
+    mod_data = COURSE_CURRICULUM.get(mod_id)
+    mod_title = mod_data['title'] if mod_data else "урок"
+
+    await state.set_state(StudentState.waiting_for_question)
+    await callback.message.edit_text(
+        f"🤖 *Вопрос по теме: {mod_title}*\n\n"
+        f"Задавай любой вопрос по этому уроку — я отвечу с учётом контекста курса.\n\n"
+        f"✍️ Напиши свой вопрос прямо сейчас:",
+        parse_mode="Markdown",
+        reply_markup=get_lesson_back_kb(mod_id)
     )
     await callback.answer()
 
