@@ -46,3 +46,16 @@ async def student_mode(message: Message):
     if not is_admin(message):
         return
     await message.answer("Переключаю в режим ученика.", reply_markup=get_student_main_kb())
+
+@router.message(F.document)
+async def get_document_id(message: Message):
+    if not is_admin(message):
+        return
+    
+    file_id = message.document.file_id
+    await message.answer(
+        f"✅ Файл получен!\n\n"
+        f"Чтобы добавить его к уроку, скопируй этот `file_id` и вставь в `data.py`:\n\n"
+        f"`{file_id}`",
+        parse_mode="Markdown"
+    )

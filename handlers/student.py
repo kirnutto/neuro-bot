@@ -191,20 +191,23 @@ async def module_callback(callback: CallbackQuery):
 
 # ───────────────────────── КНОПКИ ВНУТРИ УРОКА ─────────────────────────
 
-@router.callback_query(F.data.startswith("lesson_content_"))
-async def lesson_content(callback: CallbackQuery):
-    mod_id = callback.data.replace("lesson_content_", "mod_")
+@router.callback_query(F.data.startswith("lesson_record_"))
+async def lesson_record(callback: CallbackQuery):
+    mod_id = callback.data.replace("lesson_record_", "mod_")
     mod_data = COURSE_CURRICULUM.get(mod_id)
     if not mod_data:
         await callback.answer("Модуль не найден.")
         return
 
-    text = f"📝 *Конспект — {mod_data['title']}*\n\n"
+    record_links = []
     for lesson in mod_data["lessons"]:
-        text += f"*{lesson['title']}*\n{lesson['content']}\n\n"
+        if lesson.get("recording"):
+            record_links.append(f"*{lesson['title']}*\n{lesson['recording']}")
 
-    if len(text) > 4000:
-        text = text[:3990] + "\n\n_...продолжение на занятии_ 📌"
+    if record_links:
+        text = f"🎥 *Запись урока — {mod_data['title']}*\n\n" + "\n\n".join(record_links)
+    else:
+        text = f"🎥 *{mod_data['title']}*\n\nЗапись урока пока не загружена или появится позже. 📌"
 
     await callback.message.edit_text(
         text,
@@ -212,6 +215,38 @@ async def lesson_content(callback: CallbackQuery):
         reply_markup=get_lesson_back_kb(mod_id)
     )
     await callback.answer()
+
+@router.callback_query(F.data.startswith("lesson_pres_"))
+async def lesson_pres(callback: CallbackQuery):
+    mod_id = callback.data.replace("lesson_pres_", "mod_")
+    mod_data = COURSE_CURRICULUM.get(mod_id)
+    if not mod_data:
+        await callback.answer("Модуль не найден.")
+        return
+
+    # Check if there is a presentation file_id
+    pres_file_id = None
+    for lesson in mod_data["lessons"]:
+        if lesson.get("presentation_file_id"):
+            pres_file_id = lesson["presentation_file_id"]
+            break
+
+    if pres_file_id:
+        # Send the file
+        await callback.message.answer_document(
+            document=pres_file_id,
+            caption=f"📊 Презентация к модулю: *{mod_data['title']}*",
+            parse_mode="Markdown"
+        )
+        await callback.answer("Презентация отправлена!")
+    else:
+        text = f"📊 *{mod_data['title']}*\n\nПрезентация к этому уроку пока не загружена. 📌"
+        await callback.message.edit_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=get_lesson_back_kb(mod_id)
+        )
+        await callback.answer()
 
 @router.callback_query(F.data.startswith("lesson_hw_"))
 async def lesson_hw(callback: CallbackQuery):
