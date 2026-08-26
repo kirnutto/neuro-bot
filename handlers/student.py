@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from keyboards import get_student_main_kb, get_materials_inline_kb, get_main_inline_kb
+from keyboards import get_student_main_kb, get_materials_inline_kb, get_main_inline_kb, get_back_btn, get_module_back_kb
 from database import add_user, log_action
 from data import COURSE_CURRICULUM
 from ai_helper import get_ai_response
@@ -16,25 +16,29 @@ ONBOARDING_TEXT = (
     "Привет, {name}! 👋\n\n"
     "Я — *AI-Ментор* курса *«AIO: AI-видео с нуля до профи»*.\n"
     "Твой преподаватель: *Кирилл Орещенко*.\n\n"
-    "Вот что ты можешь делать здесь:\n\n"
-    "📚 *Материалы* — все 8 модулей курса с описанием уроков и домашними заданиями.\n"
-    "❓ *Задать вопрос* — напиши любой вопрос по курсу, и я отвечу. Можно спрашивать несколько раз подряд, я помню контекст.\n"
-    "📖 *О курсе* — что ты освоишь и какие инструменты будем использовать.\n"
-    "✍️ *Написать Кириллу* — прямая связь с преподавателем.\n"
-    "💡 *Помощь* — если что-то непонятно или нужна подсказка.\n\n"
-    "С чего начнём? 🎬"
+    "📚 *Материалы* — все 8 модулей курса\n"
+    "❓ *Задать вопрос* — спроси что угодно по курсу\n"
+    "📖 *О курсе* — программа и инструменты\n"
+    "✍️ *Написать Кириллу* — прямая связь\n"
+    "💡 *Помощь* — как пользоваться ботом\n\n"
+    "👇 Выбери, с чего начать:"
 )
+
+class StudentState(StatesGroup):
+    waiting_for_question = State()
+
+MENU_BUTTONS = {"🏠 Главное меню"}
 
 @router.message(Command("start"), StateFilter("*"))
 @router.message(F.text == "🏠 Главное меню", StateFilter("*"))
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
-    
+
     user = message.from_user
     is_new = await add_user(user.id, user.username, user.first_name)
     await log_action(user.id, "started_bot")
 
-    # Уведомить Кирилла о новом пользователе
+    # Notify admin about new user
     if is_new:
         from config import ADMIN_ID
         if ADMIN_ID:
@@ -49,62 +53,113 @@ async def cmd_start(message: Message, state: FSMContext):
                 parse_mode="Markdown"
             )
 
+    # Delete user's message to keep chat clean
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     await message.answer(
         ONBOARDING_TEXT.format(name=user.first_name),
         parse_mode="Markdown",
-        reply_markup=get_student_main_kb()
-    )
-    await message.answer(
-        "Выбери, с чего начать 👇",
         reply_markup=get_main_inline_kb()
     )
 
 # ───────────────────────── INLINE-КНОПКИ ГЛАВНОГО МЕНЮ ─────────────────────────
 
+@router.callback_query(F.data == "menu_back")
+async def menu_back(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.answer()
+    await callback.message.edit_text(
+        ONBOARDING_TEXT.format(name=callback.from_user.first_name),
+        parse_mode="Markdown",
+        reply_markup=get_main_inline_kb()
+    )
+
 @router.callback_query(F.data == "menu_materials")
 async def inline_materials(callback: CallbackQuery):
     await callback.answer()
-    await callback.message.answer("Выбери модуль, который хочешь изучить 👇", reply_markup=get_materials_inline_kb())
+    await callback.message.edit_text(
+        "📚 *Материалы курса*\n\nВыбери модуль, который хочешь изучить 👇",
+        parse_mode="Markdown",
+        reply_markup=get_materials_inline_kb()
+    )
 
 @router.callback_query(F.data == "menu_ask")
 async def inline_ask(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.answer(
-        "🤖 Режим вопросов активирован!\n\n"
+    await callback.message.edit_text(
+        "🤖 *Режим вопросов активирован!*\n\n"
         "Спрашивай про курс, инструменты или работу с нейросетями. "
-        "Я помню наш разговор, так что можешь задавать вопросы по цепочке.\n\n"
+        "Я помню весь наш разговор, так что можно задавать вопросы по цепочке.\n\n"
         "_Например:_\n"
         "— «С чего начать работу над мультфильмом?»\n"
-        "— «Как составить промпт для Kling Motion?»\n\n"
-        "Чтобы выйти — нажми *🏠 Главное меню*.",
-        parse_mode="Markdown"
+        "— «Как составить промпт для Kling Motion?»\n"
+        "— «Как исправить деформацию рук на видео?»\n\n"
+        "Напиши свой вопрос прямо сейчас ✍️\n"
+        "Чтобы выйти — нажми кнопку ниже 👇",
+        parse_mode="Markdown",
+        reply_markup=get_back_btn()
     )
     await state.set_state(StudentState.waiting_for_question)
 
 @router.callback_query(F.data == "menu_about")
 async def inline_about(callback: CallbackQuery):
     await callback.answer()
-    await about_course(callback.message)
+    await callback.message.edit_text(
+        "🎬 *AIO: AI-видео с нуля до профи*\n\n"
+        "Практический курс из *8 индивидуальных занятий* по 2 часа.\n\n"
+        "После курса ты самостоятельно умеешь:\n"
+        "✅ Создавать постоянных персонажей с нейросетью\n"
+        "✅ Оживлять фотографии и персонажей\n"
+        "✅ Делать AI-аватары для соцсетей\n"
+        "✅ Создавать мультфильмы в разных стилях\n"
+        "✅ Снимать реалистичные кино-сцены\n"
+        "✅ Монтировать всё в готовый ролик\n\n"
+        "🛠 *Инструменты курса:*\n"
+        "• ChatGPT\n"
+        "• Kling Motion\n"
+        "• HeyGen\n"
+        "• Seedance 2.5\n"
+        "• Видеоредактор\n\n"
+        "Всё обучение проходит *с телефона*, без сложных терминов. "
+        "Только реальные проекты для соцсетей. 🚀",
+        parse_mode="Markdown",
+        reply_markup=get_back_btn()
+    )
 
 @router.callback_query(F.data == "menu_contact")
 async def inline_contact(callback: CallbackQuery):
     await callback.answer()
-    await contact_kirill(callback.message)
+    await callback.message.edit_text(
+        "✍️ *Написать Кириллу напрямую:*\n\n"
+        "➡️ @OrKIIg4781\n\n"
+        "Он всегда на связи между занятиями 😊",
+        parse_mode="Markdown",
+        reply_markup=get_back_btn()
+    )
 
 @router.callback_query(F.data == "menu_help")
 async def inline_help(callback: CallbackQuery):
     await callback.answer()
-    await help_menu(callback.message)
-
-# ───────────────────────── МАТЕРИАЛЫ ─────────────────────────
-
-@router.message(F.text == "📚 Материалы")
-async def materials_menu(message: Message):
-    await log_action(message.from_user.id, "opened_materials")
-    await message.answer(
-        "Выбери модуль, который хочешь изучить 👇",
-        reply_markup=get_materials_inline_kb()
+    await callback.message.edit_text(
+        "💡 *Как пользоваться ботом?*\n\n"
+        "📚 *Материалы* — нажми и выбери нужный модуль. "
+        "Там описание урока.\n\n"
+        "❓ *Задать вопрос* — нажми и просто напиши вопрос. "
+        "Бот помнит весь разговор, можно спрашивать по цепочке:\n"
+        "_«Как создать паспорт персонажа?»_\n"
+        "_«А референс-лист — это что?»_\n"
+        "_«Дай пример промпта для Kling Motion»_\n\n"
+        "📖 *О курсе* — описание программы и инструментов.\n\n"
+        "✍️ *Написать Кириллу* — ссылка на преподавателя.\n\n"
+        "Если бот завис — нажми *🏠 Главное меню* внизу или /start.",
+        parse_mode="Markdown",
+        reply_markup=get_back_btn()
     )
+
+# ───────────────────────── МАТЕРИАЛЫ — МОДУЛИ ─────────────────────────
 
 @router.callback_query(F.data.startswith("mod_"))
 async def module_callback(callback: CallbackQuery):
@@ -122,101 +177,51 @@ async def module_callback(callback: CallbackQuery):
     for lesson in mod_data["lessons"]:
         text += f"🔹 *{lesson['title']}*\n{lesson['content']}\n\n"
 
-    await callback.message.answer(text, parse_mode="Markdown")
+    # Telegram limit is 4096 chars — truncate if needed
+    if len(text) > 4000:
+        text = text[:3990] + "\n\n_...продолжение на занятии_ 📌"
+
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=get_module_back_kb()
+    )
     await callback.answer()
-
-# ───────────────────────── О КУРСЕ ─────────────────────────
-
-@router.message(F.text == "📖 О курсе")
-async def about_course(message: Message):
-    await log_action(message.from_user.id, "viewed_about")
-    text = (
-        "🎬 *AIO: AI-видео с нуля до профи*\n\n"
-        "Практический курс из *8 индивидуальных занятий* по 2 часа.\n\n"
-        "После курса ты самостоятельно умеешь:\n"
-        "✅ Создавать постоянных персонажей с нейросетью\n"
-        "✅ Оживлять фотографии и персонажей\n"
-        "✅ Делать AI-аватары для соцсетей\n"
-        "✅ Создавать мультфильмы в разных стилях\n"
-        "✅ Снимать реалистичные кино-сцены\n"
-        "✅ Монтировать всё в готовый ролик\n\n"
-        "🛠 *Инструменты курса:*\n"
-        "• ChatGPT\n"
-        "• Kling Motion\n"
-        "• HeyGen\n"
-        "• Seedance 2.5\n"
-        "• Видеоредактор\n\n"
-        "Всё обучение проходит *с телефона*, без сложных терминов и лишней теории. "
-        "Только реальные проекты, которые можно сразу публиковать в соцсетях. 🚀"
-    )
-    await message.answer(text, parse_mode="Markdown")
-
-# ───────────────────────── НАПИСАТЬ КИРИЛЛУ ─────────────────────────
-
-@router.message(F.text == "✍️ Написать Кириллу")
-async def contact_kirill(message: Message):
-    await log_action(message.from_user.id, "contact_kirill")
-    await message.answer(
-        "Написать Кириллу напрямую можно здесь 👇\n\n"
-        "➡️ @OrKIIg4781\n\n"
-        "Он всегда на связи между занятиями 😊"
-    )
-
-# ───────────────────────── ПОМОЩЬ ─────────────────────────
-
-@router.message(F.text == "💡 Помощь")
-async def help_menu(message: Message):
-    await log_action(message.from_user.id, "viewed_help")
-    text = (
-        "💡 *Как пользоваться ботом?*\n\n"
-        "📚 *Материалы* — нажми и выбери нужный модуль. "
-        "Там описание урока и домашнее задание.\n\n"
-        "❓ *Задать вопрос* — нажми кнопку и просто напиши свой вопрос. "
-        "Бот помнит всю переписку в рамках одного сеанса, поэтому можно задавать вопросы по цепочке.\n\n"
-        "_Например:_\n"
-        "— «Как создать паспорт персонажа?»\n"
-        "— «А референс-лист — это что?»\n"
-        "— «Дай пример промпта для Kling Motion»\n\n"
-        "Чтобы выйти из режима вопросов — нажми *🏠 Главное меню*.\n\n"
-        "📖 *О курсе* — краткое описание программы и инструментов.\n\n"
-        "✍️ *Написать Кириллу* — прямая ссылка на преподавателя.\n\n"
-        "Если бот завис или не отвечает — нажми *🏠 Главное меню* или отправь команду /start."
-    )
-    await message.answer(text, parse_mode="Markdown")
 
 # ───────────────────────── AI-ЧАТ ─────────────────────────
 
-class StudentState(StatesGroup):
-    waiting_for_question = State()
-
-MENU_BUTTONS = {"📚 Материалы", "❓ Задать вопрос", "📖 О курсе",
-                "✍️ Написать Кириллу", "💡 Помощь", "🏠 Главное меню"}
-
-@router.message(F.text == "❓ Задать вопрос")
-async def ask_question_menu(message: Message, state: FSMContext):
-    await log_action(message.from_user.id, "asked_question")
+@router.message(F.text == "📚 Материалы")
+async def materials_menu(message: Message):
+    await log_action(message.from_user.id, "opened_materials")
+    try:
+        await message.delete()
+    except Exception:
+        pass
     await message.answer(
-        "🤖 Режим вопросов активирован!\n\n"
-        "Спрашивай про курс, инструменты или работу с нейросетями. "
-        "Я помню наш разговор, так что можешь задавать вопросы по цепочке.\n\n"
-        "_Например:_\n"
-        "— «С чего начать работу над мультфильмом?»\n"
-        "— «Как составить промпт для Kling Motion?»\n"
-        "— «Как исправить деформацию рук на видео?»\n\n"
-        "Чтобы выйти — нажми *🏠 Главное меню*.",
-        parse_mode="Markdown"
+        "📚 *Материалы курса*\n\nВыбери модуль, который хочешь изучить 👇",
+        parse_mode="Markdown",
+        reply_markup=get_materials_inline_kb()
     )
-    await state.set_state(StudentState.waiting_for_question)
 
 @router.message(StudentState.waiting_for_question)
 async def process_question(message: Message, state: FSMContext):
     user_question = message.text
 
-    # Если нажата кнопка меню — выходим из режима
     if user_question in MENU_BUTTONS:
         await state.clear()
-        await message.answer("Возвращаемся в главное меню.", reply_markup=get_student_main_kb())
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        await message.answer(
+            ONBOARDING_TEXT.format(name=message.from_user.first_name),
+            parse_mode="Markdown",
+            reply_markup=get_main_inline_kb()
+        )
         return
+
+    # Delete user question to keep chat cleaner (optional, comment out if you prefer to keep)
+    # await message.delete()
 
     processing_msg = await message.answer("🤖 Думаю над ответом...")
 
@@ -236,4 +241,3 @@ async def process_question(message: Message, state: FSMContext):
         await processing_msg.edit_text(ai_answer, parse_mode="Markdown")
 
     await log_action(message.from_user.id, "received_ai_answer")
-    # Состояние НЕ сбрасываем — ученица может продолжать диалог
