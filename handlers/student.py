@@ -3,7 +3,15 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from keyboards import get_student_main_kb, get_materials_inline_kb, get_main_inline_kb, get_back_btn, get_module_back_kb, get_lesson_menu_kb, get_lesson_back_kb
+from keyboards import (
+    get_student_main_kb,
+    get_materials_inline_kb,
+    get_main_inline_kb,
+    get_back_btn,
+    get_module_back_kb,
+    get_lesson_menu_kb,
+    get_lesson_back_kb
+)
 from database import add_user, log_action
 from data import COURSE_CURRICULUM
 from ai_helper import get_ai_response
@@ -28,6 +36,13 @@ class StudentState(StatesGroup):
     waiting_for_question = State()
 
 MENU_BUTTONS = {"🏠 Главное меню"}
+
+async def safe_edit_or_send(callback: CallbackQuery, text: str, reply_markup=None):
+    """Safely edit message if it's text, or send a new message if previous was a file/video."""
+    try:
+        await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=reply_markup)
+    except Exception:
+        await callback.message.answer(text, parse_mode="Markdown", reply_markup=reply_markup)
 
 @router.message(Command("start"), StateFilter("*"))
 @router.message(F.text == "🏠 Главное меню", StateFilter("*"))
@@ -71,25 +86,26 @@ async def cmd_start(message: Message, state: FSMContext):
 async def menu_back(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.answer()
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         ONBOARDING_TEXT.format(name=callback.from_user.first_name),
-        parse_mode="Markdown",
         reply_markup=get_main_inline_kb()
     )
 
 @router.callback_query(F.data == "menu_materials")
 async def inline_materials(callback: CallbackQuery):
     await callback.answer()
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         "📚 *Материалы курса*\n\nВыбери модуль, который хочешь изучить 👇",
-        parse_mode="Markdown",
         reply_markup=get_materials_inline_kb()
     )
 
 @router.callback_query(F.data == "menu_ask")
 async def inline_ask(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         "🤖 *Режим вопросов активирован!*\n\n"
         "Спрашивай про курс, инструменты или работу с нейросетями. "
         "Я помню весь наш разговор, так что можно задавать вопросы по цепочке.\n\n"
@@ -99,7 +115,6 @@ async def inline_ask(callback: CallbackQuery, state: FSMContext):
         "— «Как исправить деформацию рук на видео?»\n\n"
         "Напиши свой вопрос прямо сейчас ✍️\n"
         "Чтобы выйти — нажми кнопку ниже 👇",
-        parse_mode="Markdown",
         reply_markup=get_back_btn()
     )
     await state.set_state(StudentState.waiting_for_question)
@@ -107,7 +122,8 @@ async def inline_ask(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "menu_about")
 async def inline_about(callback: CallbackQuery):
     await callback.answer()
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         "🎬 *AIO: AI-видео с нуля до профи*\n\n"
         "Практический курс из *8 индивидуальных занятий* по 2 часа.\n\n"
         "После курса ты самостоятельно умеешь:\n"
@@ -125,25 +141,25 @@ async def inline_about(callback: CallbackQuery):
         "• Видеоредактор\n\n"
         "Всё обучение проходит *с телефона*, без сложных терминов. "
         "Только реальные проекты для соцсетей. 🚀",
-        parse_mode="Markdown",
         reply_markup=get_back_btn()
     )
 
 @router.callback_query(F.data == "menu_contact")
 async def inline_contact(callback: CallbackQuery):
     await callback.answer()
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         "✍️ *Написать Кириллу напрямую:*\n\n"
         "➡️ @OrKIIg4781\n\n"
         "Он всегда на связи между занятиями 😊",
-        parse_mode="Markdown",
         reply_markup=get_back_btn()
     )
 
 @router.callback_query(F.data == "menu_help")
 async def inline_help(callback: CallbackQuery):
     await callback.answer()
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         "💡 *Как пользоваться ботом?*\n\n"
         "📚 *Материалы* — нажми и выбери нужный модуль. "
         "Там описание урока.\n\n"
@@ -155,7 +171,6 @@ async def inline_help(callback: CallbackQuery):
         "📖 *О курсе* — описание программы и инструментов.\n\n"
         "✍️ *Написать Кириллу* — ссылка на преподавателя.\n\n"
         "Если бот завис — нажми *🏠 Главное меню* внизу или /start.",
-        parse_mode="Markdown",
         reply_markup=get_back_btn()
     )
 
@@ -179,12 +194,12 @@ async def module_callback(callback: CallbackQuery):
         f"📖 *{mod_data['title']}*\n\n"
         f"_{mod_data['description']}_\n\n"
         f"*Уроки:*\n{lessons_list}\n\n"
-        f"👇 Выбери, что хочешь сделать:"
+        f"👇 Выбери, что хочешь открыть:"
     )
 
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         text,
-        parse_mode="Markdown",
         reply_markup=get_lesson_menu_kb(mod_id)
     )
     await callback.answer()
@@ -199,7 +214,6 @@ async def lesson_record(callback: CallbackQuery):
         await callback.answer("Модуль не найден.")
         return
 
-    # Check for direct Telegram video file_id
     video_id = None
     record_links = []
     for lesson in mod_data["lessons"]:
@@ -213,7 +227,8 @@ async def lesson_record(callback: CallbackQuery):
         await callback.message.answer_video(
             video=video_id,
             caption=f"🎥 *Запись урока — {mod_data['title']}*",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
+            reply_markup=get_lesson_menu_kb(mod_id)
         )
         await callback.answer("Запись урока отправлена!")
         return
@@ -223,10 +238,10 @@ async def lesson_record(callback: CallbackQuery):
     else:
         text = f"🎥 *{mod_data['title']}*\n\nЗапись урока пока не загружена или появится позже. 📌"
 
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         text,
-        parse_mode="Markdown",
-        reply_markup=get_lesson_back_kb(mod_id)
+        reply_markup=get_lesson_menu_kb(mod_id)
     )
     await callback.answer()
 
@@ -238,7 +253,6 @@ async def lesson_pres(callback: CallbackQuery):
         await callback.answer("Модуль не найден.")
         return
 
-    # Check if there is a presentation file_id or url
     pres_file_id = None
     pres_url = None
     for lesson in mod_data["lessons"]:
@@ -253,25 +267,22 @@ async def lesson_pres(callback: CallbackQuery):
         await callback.message.answer_document(
             document=pres_file_id,
             caption=f"📊 Презентация к модулю: *{mod_data['title']}*",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
+            reply_markup=get_lesson_menu_kb(mod_id)
         )
         await callback.answer("Презентация отправлена!")
+        return
     elif pres_url:
         text = f"📊 *Презентация — {mod_data['title']}*\n\n🔗 [Открыть презентацию]({pres_url})"
-        await callback.message.edit_text(
-            text,
-            parse_mode="Markdown",
-            reply_markup=get_lesson_back_kb(mod_id)
-        )
-        await callback.answer()
     else:
         text = f"📊 *{mod_data['title']}*\n\nПрезентация к этому уроку пока не загружена. 📌"
-        await callback.message.edit_text(
-            text,
-            parse_mode="Markdown",
-            reply_markup=get_lesson_back_kb(mod_id)
-        )
-        await callback.answer()
+
+    await safe_edit_or_send(
+        callback,
+        text,
+        reply_markup=get_lesson_menu_kb(mod_id)
+    )
+    await callback.answer()
 
 @router.callback_query(F.data.startswith("lesson_cheat_"))
 async def lesson_cheat(callback: CallbackQuery):
@@ -300,35 +311,26 @@ async def lesson_cheat(callback: CallbackQuery):
         await callback.message.answer_document(
             document=cheat_file_id,
             caption=f"📌 Шпаргалка к модулю: *{mod_data['title']}*",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
+            reply_markup=get_lesson_menu_kb(mod_id)
         )
         await callback.answer("Шпаргалка отправлена!")
+        return
     elif cheat_text:
         text = f"📌 *Шпаргалка — {mod_data['title']}*\n\n{cheat_text}"
         if len(text) > 4000:
             text = text[:3990] + "\n\n_...продолжение_"
-        await callback.message.edit_text(
-            text,
-            parse_mode="Markdown",
-            reply_markup=get_lesson_back_kb(mod_id)
-        )
-        await callback.answer()
     elif cheat_url:
         text = f"📌 *Шпаргалка — {mod_data['title']}*\n\n🔗 [Открыть шпаргалку]({cheat_url})"
-        await callback.message.edit_text(
-            text,
-            parse_mode="Markdown",
-            reply_markup=get_lesson_back_kb(mod_id)
-        )
-        await callback.answer()
     else:
         text = f"📌 *{mod_data['title']}*\n\nШпаргалка к этому уроку скоро появится. 📌"
-        await callback.message.edit_text(
-            text,
-            parse_mode="Markdown",
-            reply_markup=get_lesson_back_kb(mod_id)
-        )
-        await callback.answer()
+
+    await safe_edit_or_send(
+        callback,
+        text,
+        reply_markup=get_lesson_menu_kb(mod_id)
+    )
+    await callback.answer()
 
 @router.callback_query(F.data.startswith("lesson_hw_"))
 async def lesson_hw(callback: CallbackQuery):
@@ -351,10 +353,10 @@ async def lesson_hw(callback: CallbackQuery):
     if len(text) > 4000:
         text = text[:3990] + "\n\n_...продолжение_ 📌"
 
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         text,
-        parse_mode="Markdown",
-        reply_markup=get_lesson_back_kb(mod_id)
+        reply_markup=get_lesson_menu_kb(mod_id)
     )
     await callback.answer()
 
@@ -365,11 +367,11 @@ async def lesson_ask(callback: CallbackQuery, state: FSMContext):
     mod_title = mod_data['title'] if mod_data else "урок"
 
     await state.set_state(StudentState.waiting_for_question)
-    await callback.message.edit_text(
+    await safe_edit_or_send(
+        callback,
         f"🤖 *Вопрос по теме: {mod_title}*\n\n"
         f"Задавай любой вопрос по этому уроку — я отвечу с учётом контекста курса.\n\n"
         f"✍️ Напиши свой вопрос прямо сейчас:",
-        parse_mode="Markdown",
         reply_markup=get_lesson_back_kb(mod_id)
     )
     await callback.answer()
@@ -405,9 +407,6 @@ async def process_question(message: Message, state: FSMContext):
             reply_markup=get_main_inline_kb()
         )
         return
-
-    # Delete user question to keep chat cleaner (optional, comment out if you prefer to keep)
-    # await message.delete()
 
     processing_msg = await message.answer("🤖 Думаю над ответом...")
 
