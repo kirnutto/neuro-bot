@@ -89,8 +89,44 @@ def get_lesson_back_kb(mod_id: str):
 def get_admin_main_kb():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📊 Статистика учеников"), KeyboardButton(text="📝 Добавить материал")],
-            [KeyboardButton(text="📢 Рассылка"), KeyboardButton(text="📚 Режим ученика")]
+            [KeyboardButton(text="🎬 Управление материалами"), KeyboardButton(text="📊 Статистика учеников")],
+            [KeyboardButton(text="📚 Режим ученика")]
         ],
         resize_keyboard=True
+    )
+
+def get_admin_materials_kb():
+    """Inline keyboard with all modules for admin editing."""
+    keys = list(COURSE_CURRICULUM.keys())
+    inline_keyboard = []
+    for i in range(0, len(keys), 2):
+        row = [InlineKeyboardButton(
+            text=f"✏️ {COURSE_CURRICULUM[keys[i]]['title']}",
+            callback_data=f"admin_select_mod_{keys[i]}"
+        )]
+        if i + 1 < len(keys):
+            row.append(InlineKeyboardButton(
+                text=f"✏️ {COURSE_CURRICULUM[keys[i+1]]['title']}",
+                callback_data=f"admin_select_mod_{keys[i+1]}"
+            ))
+        inline_keyboard.append(row)
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+def get_admin_module_edit_kb(mod_id: str):
+    """Action buttons for editing a specific module."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🎥 Изменить видео / запись", callback_data=f"admin_edit_video_{mod_id}")],
+            [InlineKeyboardButton(text="📊 Изменить презентацию", callback_data=f"admin_edit_pres_{mod_id}")],
+            [InlineKeyboardButton(text="📌 Изменить шпаргалку", callback_data=f"admin_edit_cheat_{mod_id}")],
+            [InlineKeyboardButton(text="← К списку модулей", callback_data="admin_modules_list")]
+        ]
+    )
+
+def get_admin_cancel_kb(mod_id: str):
+    """Cancel editing and return to module edit card."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Отмена", callback_data=f"admin_select_mod_{mod_id}")]
+        ]
     )

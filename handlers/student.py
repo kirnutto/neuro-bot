@@ -12,7 +12,7 @@ from keyboards import (
     get_lesson_menu_kb,
     get_lesson_back_kb
 )
-from database import add_user, log_action
+from database import add_user, log_action, get_module_materials
 from data import COURSE_CURRICULUM
 from ai_helper import get_ai_response
 
@@ -214,14 +214,9 @@ async def lesson_record(callback: CallbackQuery):
         await callback.answer("Модуль не найден.")
         return
 
-    video_id = None
-    record_links = []
-    for lesson in mod_data["lessons"]:
-        if lesson.get("recording_video_id"):
-            video_id = lesson["recording_video_id"]
-            break
-        if lesson.get("recording"):
-            record_links.append(f"*{lesson['title']}*\n{lesson['recording']}")
+    materials = await get_module_materials(mod_id)
+    video_id = materials.get("recording_video_id")
+    record_url = materials.get("recording_url")
 
     if video_id:
         await callback.message.answer_video(
@@ -233,8 +228,8 @@ async def lesson_record(callback: CallbackQuery):
         await callback.answer("Запись урока отправлена!")
         return
 
-    if record_links:
-        text = f"🎥 *Запись урока — {mod_data['title']}*\n\n" + "\n\n".join(record_links)
+    if record_url:
+        text = f"🎥 *Запись урока — {mod_data['title']}*\n\n🔗 [Смотреть запись урока]({record_url})"
     else:
         text = f"🎥 *{mod_data['title']}*\n\nЗапись урока пока не загружена или появится позже. 📌"
 
@@ -253,15 +248,9 @@ async def lesson_pres(callback: CallbackQuery):
         await callback.answer("Модуль не найден.")
         return
 
-    pres_file_id = None
-    pres_url = None
-    for lesson in mod_data["lessons"]:
-        if lesson.get("presentation_file_id"):
-            pres_file_id = lesson["presentation_file_id"]
-            break
-        if lesson.get("presentation_url"):
-            pres_url = lesson["presentation_url"]
-            break
+    materials = await get_module_materials(mod_id)
+    pres_file_id = materials.get("presentation_file_id")
+    pres_url = materials.get("presentation_url")
 
     if pres_file_id:
         await callback.message.answer_document(
@@ -292,20 +281,10 @@ async def lesson_cheat(callback: CallbackQuery):
         await callback.answer("Модуль не найден.")
         return
 
-    cheat_file_id = None
-    cheat_text = None
-    cheat_url = None
-
-    for lesson in mod_data["lessons"]:
-        if lesson.get("cheatsheet_file_id"):
-            cheat_file_id = lesson["cheatsheet_file_id"]
-            break
-        if lesson.get("cheatsheet_text"):
-            cheat_text = lesson["cheatsheet_text"]
-            break
-        if lesson.get("cheatsheet_url"):
-            cheat_url = lesson["cheatsheet_url"]
-            break
+    materials = await get_module_materials(mod_id)
+    cheat_file_id = materials.get("cheatsheet_file_id")
+    cheat_text = materials.get("cheatsheet_text")
+    cheat_url = materials.get("cheatsheet_url")
 
     if cheat_file_id:
         await callback.message.answer_document(
