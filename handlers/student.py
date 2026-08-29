@@ -193,7 +193,7 @@ async def module_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("lesson_record_"))
 async def lesson_record(callback: CallbackQuery):
-    mod_id = callback.data.replace("lesson_record_", "mod_")
+    mod_id = callback.data.replace("lesson_record_", "")
     mod_data = COURSE_CURRICULUM.get(mod_id)
     if not mod_data:
         await callback.answer("Модуль не найден.")
@@ -232,7 +232,7 @@ async def lesson_record(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("lesson_pres_"))
 async def lesson_pres(callback: CallbackQuery):
-    mod_id = callback.data.replace("lesson_pres_", "mod_")
+    mod_id = callback.data.replace("lesson_pres_", "")
     mod_data = COURSE_CURRICULUM.get(mod_id)
     if not mod_data:
         await callback.answer("Модуль не найден.")
@@ -275,7 +275,7 @@ async def lesson_pres(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("lesson_cheat_"))
 async def lesson_cheat(callback: CallbackQuery):
-    mod_id = callback.data.replace("lesson_cheat_", "mod_")
+    mod_id = callback.data.replace("lesson_cheat_", "")
     mod_data = COURSE_CURRICULUM.get(mod_id)
     if not mod_data:
         await callback.answer("Модуль не найден.")
@@ -332,7 +332,7 @@ async def lesson_cheat(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("lesson_hw_"))
 async def lesson_hw(callback: CallbackQuery):
-    mod_id = callback.data.replace("lesson_hw_", "mod_")
+    mod_id = callback.data.replace("lesson_hw_", "")
     mod_data = COURSE_CURRICULUM.get(mod_id)
     if not mod_data:
         await callback.answer("Модуль не найден.")
@@ -360,7 +360,7 @@ async def lesson_hw(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("lesson_ask_"))
 async def lesson_ask(callback: CallbackQuery, state: FSMContext):
-    mod_id = callback.data.replace("lesson_ask_", "mod_")
+    mod_id = callback.data.replace("lesson_ask_", "")
     mod_data = COURSE_CURRICULUM.get(mod_id)
     mod_title = mod_data['title'] if mod_data else "урок"
 
