@@ -110,7 +110,7 @@ async def student_mode(message: Message, state: FSMContext):
 
 # ───────────────────────── УПРАВЛЕНИЕ МАТЕРИАЛАМИ (АДМИН) ─────────────────────────
 
-@router.message(F.text == "🎬 Управление материалами")
+@router.message(F.text.in_({"🎬 Управление материалами", "📝 Добавить материал", "Добавить материал", "Управление материалами"}))
 async def admin_materials_menu(message: Message, state: FSMContext):
     if not is_admin(message.from_user.id):
         return
