@@ -9,10 +9,10 @@ COURSE_CURRICULUM = {
                 "homework": "Продолжить работу в том же закреплённом чате. Доработать паспорт персонажа, получить минимум три тестовых изображения одного героя. На следующее занятие принести утверждённый паспорт, референс-лист и лучшую тестовую картинку.",
                 "recording": "",
                 "recording_video_id": "",
-                "presentation_file_id": "",
+                "presentation_file_id": "BQACAgIAAxkDAAPnapLUx7CuTA_1Hci3Jil8dCRvIDcAAu6aAAJvWZhIsY1k60TxWy49BA",
                 "presentation_url": "",
                 "cheatsheet_text": "",
-                "cheatsheet_file_id": "",
+                "cheatsheet_file_id": "BQACAgIAAxkDAAPoapLUx-QAAS-9fZBzvnoazvaDPaGGAALvmgACb1mYSK90D4zZJ6ntPQQ",
                 "cheatsheet_url": ""
             }
         ]
