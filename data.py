@@ -7,8 +7,13 @@ COURSE_CURRICULUM = {
                 "title": "Урок 1. ChatGPT, промпты и постоянство персонажа",
                 "content": "Сначала ученица знакомится с общей логикой ChatGPT и понимает, что для каждого большого направления или проекта необходимо создавать отдельный рабочий чат. Рабочий маршрут AI-видео: идея → контекст → концепции персонажа → выбор персонажа → паспорт персонажа → референс-лист → проверка постоянства → сценарий → 6 ключевых изображений → отдельная анимация → монтаж.",
                 "homework": "Продолжить работу в том же закреплённом чате. Доработать паспорт персонажа, получить минимум три тестовых изображения одного героя. На следующее занятие принести утверждённый паспорт, референс-лист и лучшую тестовую картинку.",
-                "recording": "https://youtu.be/dummy_link_1",
-                "presentation_file_id": ""
+                "recording": "",
+                "recording_video_id": "",
+                "presentation_file_id": "",
+                "presentation_url": "",
+                "cheatsheet_text": "",
+                "cheatsheet_file_id": "",
+                "cheatsheet_url": ""
             }
         ]
     },
@@ -20,8 +25,13 @@ COURSE_CURRICULUM = {
                 "title": "Урок 2. Оживление персонажа в Kling Motion",
                 "content": "Урок полностью посвящён Kling Motion. Изучаем интерфейс, загрузку исходного изображения, выбор/загрузку референса движения, перенос движений. Отдельно разбираются танцевальные движения, положение тела, естественность рук/ног.",
                 "homework": "Оживить минимум три изображения в Kling Motion с разными движениями. Отметить, сохранились ли лицо, одежда, пропорции. Сохранить лучший вариант для будущего монтажа.",
-                "recording": "https://youtu.be/dummy_link_2",
-                "presentation_file_id": ""
+                "recording": "",
+                "recording_video_id": "",
+                "presentation_file_id": "",
+                "presentation_url": "",
+                "cheatsheet_text": "",
+                "cheatsheet_file_id": "",
+                "cheatsheet_url": ""
             }
         ]
     },
@@ -33,8 +43,13 @@ COURSE_CURRICULUM = {
                 "title": "Урок 3. Создание собственного AI-аватара",
                 "content": "Знакомство с HeyGen. Создание аватара на основе собственных материалов, настройка внешнего вида, подачи и поведения в кадре. Ученица создаёт короткий полезный ролик.",
                 "homework": "Создать два коротких ролика с одним аватаром: экспертный и более эмоциональный. Сравнить и выбрать лучший.",
-                "recording": "https://youtu.be/dummy_link_3",
-                "presentation_file_id": ""
+                "recording": "",
+                "recording_video_id": "",
+                "presentation_file_id": "",
+                "presentation_url": "",
+                "cheatsheet_text": "",
+                "cheatsheet_file_id": "",
+                "cheatsheet_url": ""
             }
         ]
     },
@@ -46,8 +61,13 @@ COURSE_CURRICULUM = {
                 "title": "Урок 4. Image-to-video: оживляем фотографию",
                 "content": "Учимся превращать фото в видео. Изучается структура промпта для анимации: что делает персонаж, окружение, движение камеры, настроение и свет. Практика в Seedance 2.5.",
                 "homework": "Оживить три разные фотографии: портрет, в полный рост и сцену с окружением. Для каждой сделать минимум два варианта движения.",
-                "recording": "https://youtu.be/dummy_link_4",
-                "presentation_file_id": ""
+                "recording": "",
+                "recording_video_id": "",
+                "presentation_file_id": "",
+                "presentation_url": "",
+                "cheatsheet_text": "",
+                "cheatsheet_file_id": "",
+                "cheatsheet_url": ""
             }
         ]
     },
@@ -59,8 +79,13 @@ COURSE_CURRICULUM = {
                 "title": "Урок 5. Мультфильм от идеи до шести кадров",
                 "content": "Полный процесс создания мультфильма на основе реальной темы ученицы. Создаётся сценарий на 6 сцен. Раскадровка в виде шести отдельных изображений, затем для каждого — промпт на анимацию до 6 сек.",
                 "homework": "Доделать все шесть изображений мультфильма, проверить постоянство персонажа и подготовить отдельный промпт на анимацию для каждого кадра.",
-                "recording": "https://youtu.be/dummy_link_5",
-                "presentation_file_id": ""
+                "recording": "",
+                "recording_video_id": "",
+                "presentation_file_id": "",
+                "presentation_url": "",
+                "cheatsheet_text": "",
+                "cheatsheet_file_id": "",
+                "cheatsheet_url": ""
             }
         ]
     },
@@ -72,8 +97,13 @@ COURSE_CURRICULUM = {
                 "title": "Урок 6. Реализм: создаём видео как в кино",
                 "content": "Создание реалистичной истории из 6 кадров. Разбираются композиция, планы, движение камеры, свет и атмосфера. Особое внимание — сохранению внешности персонажа.",
                 "homework": "Создать реалистичную историю минимум из четырёх связанных кадров. Оживить каждый кадр и проверить детали.",
-                "recording": "https://youtu.be/dummy_link_6",
-                "presentation_file_id": ""
+                "recording": "",
+                "recording_video_id": "",
+                "presentation_file_id": "",
+                "presentation_url": "",
+                "cheatsheet_text": "",
+                "cheatsheet_file_id": "",
+                "cheatsheet_url": ""
             }
         ]
     },
@@ -85,8 +115,13 @@ COURSE_CURRICULUM = {
                 "title": "Урок 7. Монтаж, ритм и финальная упаковка",
                 "content": "Сборка созданных фрагментов в видеоредакторе. Отбор дублей, темп, переходы, музыка и субтитры. Главная задача — получить динамичный ролик.",
                 "homework": "Собрать законченный ролик из созданных сцен, экспортировать его и записать минимум три момента для улучшения.",
-                "recording": "https://youtu.be/dummy_link_7",
-                "presentation_file_id": ""
+                "recording": "",
+                "recording_video_id": "",
+                "presentation_file_id": "",
+                "presentation_url": "",
+                "cheatsheet_text": "",
+                "cheatsheet_file_id": "",
+                "cheatsheet_url": ""
             }
         ]
     },
@@ -98,8 +133,13 @@ COURSE_CURRICULUM = {
                 "title": "Урок 8. Финальная работа: от идеи до публикации",
                 "content": "Ученица самостоятельно проходит весь рабочий процесс: от выбора идеи и создания персонажа до финального монтажа. Кирилл контролирует порядок действий и помогает исправлять ошибки.",
                 "homework": "Опубликовать финальный ролик. Сохранить все материалы как собственную повторяемую систему производства контента.",
-                "recording": "https://youtu.be/dummy_link_8",
-                "presentation_file_id": ""
+                "recording": "",
+                "recording_video_id": "",
+                "presentation_file_id": "",
+                "presentation_url": "",
+                "cheatsheet_text": "",
+                "cheatsheet_file_id": "",
+                "cheatsheet_url": ""
             }
         ]
     }

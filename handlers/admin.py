@@ -53,9 +53,36 @@ async def get_document_id(message: Message):
         return
     
     file_id = message.document.file_id
+    file_name = message.document.file_name or "документ"
     await message.answer(
-        f"✅ Файл получен!\n\n"
-        f"Чтобы добавить его к уроку, скопируй этот `file_id` и вставь в `data.py`:\n\n"
-        f"`{file_id}`",
+        f"✅ *Файл/документ получен:* `{file_name}`\n\n"
+        f"📋 *File ID:*\n`{file_id}`\n\n"
+        f"Отправь этот `file_id` ассистенту или вставь в `data.py` (для презентации или шпаргалки).",
         parse_mode="Markdown"
     )
+
+@router.message(F.video)
+async def get_video_id(message: Message):
+    if not is_admin(message):
+        return
+    
+    file_id = message.video.file_id
+    await message.answer(
+        f"✅ *Видео получено!*\n\n"
+        f"📋 *File ID:*\n`{file_id}`\n\n"
+        f"Отправь этот `file_id` ассистенту или вставь в `data.py` в поле `recording_video_id`.",
+        parse_mode="Markdown"
+    )
+
+@router.message(F.photo)
+async def get_photo_id(message: Message):
+    if not is_admin(message):
+        return
+    
+    file_id = message.photo[-1].file_id
+    await message.answer(
+        f"✅ *Фотография/изображение получено!*\n\n"
+        f"📋 *File ID:*\n`{file_id}`",
+        parse_mode="Markdown"
+    )
+

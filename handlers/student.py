@@ -199,10 +199,24 @@ async def lesson_record(callback: CallbackQuery):
         await callback.answer("Модуль не найден.")
         return
 
+    # Check for direct Telegram video file_id
+    video_id = None
     record_links = []
     for lesson in mod_data["lessons"]:
+        if lesson.get("recording_video_id"):
+            video_id = lesson["recording_video_id"]
+            break
         if lesson.get("recording"):
             record_links.append(f"*{lesson['title']}*\n{lesson['recording']}")
+
+    if video_id:
+        await callback.message.answer_video(
+            video=video_id,
+            caption=f"🎥 *Запись урока — {mod_data['title']}*",
+            parse_mode="Markdown"
+        )
+        await callback.answer("Запись урока отправлена!")
+        return
 
     if record_links:
         text = f"🎥 *Запись урока — {mod_data['title']}*\n\n" + "\n\n".join(record_links)
@@ -224,23 +238,91 @@ async def lesson_pres(callback: CallbackQuery):
         await callback.answer("Модуль не найден.")
         return
 
-    # Check if there is a presentation file_id
+    # Check if there is a presentation file_id or url
     pres_file_id = None
+    pres_url = None
     for lesson in mod_data["lessons"]:
         if lesson.get("presentation_file_id"):
             pres_file_id = lesson["presentation_file_id"]
             break
+        if lesson.get("presentation_url"):
+            pres_url = lesson["presentation_url"]
+            break
 
     if pres_file_id:
-        # Send the file
         await callback.message.answer_document(
             document=pres_file_id,
             caption=f"📊 Презентация к модулю: *{mod_data['title']}*",
             parse_mode="Markdown"
         )
         await callback.answer("Презентация отправлена!")
+    elif pres_url:
+        text = f"📊 *Презентация — {mod_data['title']}*\n\n🔗 [Открыть презентацию]({pres_url})"
+        await callback.message.edit_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=get_lesson_back_kb(mod_id)
+        )
+        await callback.answer()
     else:
         text = f"📊 *{mod_data['title']}*\n\nПрезентация к этому уроку пока не загружена. 📌"
+        await callback.message.edit_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=get_lesson_back_kb(mod_id)
+        )
+        await callback.answer()
+
+@router.callback_query(F.data.startswith("lesson_cheat_"))
+async def lesson_cheat(callback: CallbackQuery):
+    mod_id = callback.data.replace("lesson_cheat_", "mod_")
+    mod_data = COURSE_CURRICULUM.get(mod_id)
+    if not mod_data:
+        await callback.answer("Модуль не найден.")
+        return
+
+    cheat_file_id = None
+    cheat_text = None
+    cheat_url = None
+
+    for lesson in mod_data["lessons"]:
+        if lesson.get("cheatsheet_file_id"):
+            cheat_file_id = lesson["cheatsheet_file_id"]
+            break
+        if lesson.get("cheatsheet_text"):
+            cheat_text = lesson["cheatsheet_text"]
+            break
+        if lesson.get("cheatsheet_url"):
+            cheat_url = lesson["cheatsheet_url"]
+            break
+
+    if cheat_file_id:
+        await callback.message.answer_document(
+            document=cheat_file_id,
+            caption=f"📌 Шпаргалка к модулю: *{mod_data['title']}*",
+            parse_mode="Markdown"
+        )
+        await callback.answer("Шпаргалка отправлена!")
+    elif cheat_text:
+        text = f"📌 *Шпаргалка — {mod_data['title']}*\n\n{cheat_text}"
+        if len(text) > 4000:
+            text = text[:3990] + "\n\n_...продолжение_"
+        await callback.message.edit_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=get_lesson_back_kb(mod_id)
+        )
+        await callback.answer()
+    elif cheat_url:
+        text = f"📌 *Шпаргалка — {mod_data['title']}*\n\n🔗 [Открыть шпаргалку]({cheat_url})"
+        await callback.message.edit_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=get_lesson_back_kb(mod_id)
+        )
+        await callback.answer()
+    else:
+        text = f"📌 *{mod_data['title']}*\n\nШпаргалка к этому уроку скоро появится. 📌"
         await callback.message.edit_text(
             text,
             parse_mode="Markdown",
