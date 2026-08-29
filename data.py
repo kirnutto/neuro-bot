@@ -27,7 +27,7 @@ COURSE_CURRICULUM = {
                 "homework": "Оживить минимум три изображения в Kling Motion с разными движениями. Отметить, сохранились ли лицо, одежда, пропорции. Сохранить лучший вариант для будущего монтажа.",
                 "recording": "",
                 "recording_video_id": "",
-                "presentation_file_id": "",
+                "presentation_file_id": "BQACAgIAAxkDAAP_apNkGI6K2OCk_J07v0ycjHdi8rEAAtOjAAJvWaBIFAABtJpIqVM1PQQ",
                 "presentation_url": "",
                 "cheatsheet_text": "",
                 "cheatsheet_file_id": "",
