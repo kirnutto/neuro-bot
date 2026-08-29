@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -20,6 +20,8 @@ from database import (
 from data import COURSE_CURRICULUM
 
 router = Router()
+
+temp_admin_media = {}
 
 def is_admin(user_id: int) -> bool:
     return user_id == ADMIN_ID
@@ -214,7 +216,7 @@ async def admin_edit_cheat(callback: CallbackQuery, state: FSMContext):
     except Exception:
         await callback.message.answer(text, parse_mode="Markdown", reply_markup=get_admin_cancel_kb(mod_id))
 
-# ───────────────────────── ОБРАБОТКА ВХОДЯЩИХ МАТЕРИАЛОВ ─────────────────────────
+# ───────────────────────── ОБРАБОТКА ВХОДЯЩИХ МАТЕРИАЛОВ В СОСТОЯНИЯХ ─────────────────────────
 
 @router.message(AdminMaterialsState.waiting_for_video)
 async def process_admin_video(message: Message, state: FSMContext):
@@ -231,6 +233,11 @@ async def process_admin_video(message: Message, state: FSMContext):
         await update_module_material(mod_id, "recording_video_id", file_id)
         await update_module_material(mod_id, "recording_url", "")
         await message.answer("✅ *Видеофайл успешно прикреплен к уроку!*", parse_mode="Markdown")
+    elif message.document:
+        file_id = message.document.file_id
+        await update_module_material(mod_id, "recording_video_id", file_id)
+        await update_module_material(mod_id, "recording_url", "")
+        await message.answer("✅ *Видеофайл (документ) успешно прикреплен к уроку!*", parse_mode="Markdown")
     elif message.text:
         url = message.text.strip()
         await update_module_material(mod_id, "recording_url", url)
@@ -313,3 +320,122 @@ async def process_admin_cheat(message: Message, state: FSMContext):
     await state.clear()
     card_text = await format_admin_module_card(mod_id)
     await message.answer(card_text, parse_mode="Markdown", reply_markup=get_admin_module_edit_kb(mod_id))
+
+# ───────────────────────── БЫСТРАЯ ЗАГРУЗКА ПРИ ПРЯМОЙ ОТПРАВКЕ ФАЙЛОВ ─────────────────────────
+
+@router.message(F.video)
+async def admin_direct_video(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return
+    current_state = await state.get_state()
+    if current_state:
+        return
+
+    file_id = message.video.file_id
+    temp_admin_media[message.from_user.id] = {"type": "video", "file_id": file_id}
+
+    kb = []
+    keys = list(COURSE_CURRICULUM.keys())
+    for i in range(0, len(keys), 2):
+        row = [InlineKeyboardButton(text=f"🎥 {COURSE_CURRICULUM[keys[i]]['title'][:20]}...", callback_data=f"quick_attach_vid_{keys[i]}")]
+        if i + 1 < len(keys):
+            row.append(InlineKeyboardButton(text=f"🎥 {COURSE_CURRICULUM[keys[i+1]]['title'][:20]}...", callback_data=f"quick_attach_vid_{keys[i+1]}"))
+        kb.append(row)
+
+    await message.answer(
+        "🎥 *Видео получено!*\n\n"
+        "Выберите, к какому уроку прикрепить его как **Запись урока** 👇",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=kb)
+    )
+
+@router.callback_query(F.data.startswith("quick_attach_vid_"))
+async def quick_attach_video(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        return
+    mod_id = callback.data.replace("quick_attach_vid_", "")
+    media_data = temp_admin_media.get(callback.from_user.id)
+    if not media_data or media_data.get("type") != "video":
+        await callback.answer("Файл не найден или устарел. Отправьте видео заново.", show_alert=True)
+        return
+
+    file_id = media_data["file_id"]
+    await update_module_material(mod_id, "recording_video_id", file_id)
+    await update_module_material(mod_id, "recording_url", "")
+
+    mod_title = COURSE_CURRICULUM.get(mod_id, {}).get("title", mod_id)
+    await callback.answer("✅ Видео прикреплено!")
+    await callback.message.edit_text(
+        f"✅ *Видео успешно прикреплено к уроку:*\n*{mod_title}* 🚀\n\nУченики уже могут его смотреть!",
+        parse_mode="Markdown"
+    )
+
+@router.message(F.document)
+async def admin_direct_document(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return
+    current_state = await state.get_state()
+    if current_state:
+        return
+
+    file_id = message.document.file_id
+    file_name = message.document.file_name or "документ"
+    temp_admin_media[message.from_user.id] = {"type": "doc", "file_id": file_id, "name": file_name}
+
+    kb = []
+    keys = list(COURSE_CURRICULUM.keys())
+    for k in keys:
+        kb.append([
+            InlineKeyboardButton(text=f"📊 Преза: {COURSE_CURRICULUM[k]['title'][:20]}...", callback_data=f"quick_attach_pres_{k}"),
+            InlineKeyboardButton(text=f"📌 Шпора: {COURSE_CURRICULUM[k]['title'][:20]}...", callback_data=f"quick_attach_cheat_{k}")
+        ])
+
+    await message.answer(
+        f"📄 *Файл получен:* `{file_name}`\n\n"
+        f"Выберите, к какому уроку прикрепить его как **Презентацию** или **Шпаргалку** 👇",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=kb)
+    )
+
+@router.callback_query(F.data.startswith("quick_attach_pres_"))
+async def quick_attach_pres(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        return
+    mod_id = callback.data.replace("quick_attach_pres_", "")
+    media_data = temp_admin_media.get(callback.from_user.id)
+    if not media_data or media_data.get("type") != "doc":
+        await callback.answer("Файл не найден. Отправьте файл заново.", show_alert=True)
+        return
+
+    file_id = media_data["file_id"]
+    await update_module_material(mod_id, "presentation_file_id", file_id)
+    await update_module_material(mod_id, "presentation_url", "")
+
+    mod_title = COURSE_CURRICULUM.get(mod_id, {}).get("title", mod_id)
+    await callback.answer("✅ Презентация прикреплена!")
+    await callback.message.edit_text(
+        f"✅ *Презентация успешно прикреплена к уроку:*\n*{mod_title}* 🚀",
+        parse_mode="Markdown"
+    )
+
+@router.callback_query(F.data.startswith("quick_attach_cheat_"))
+async def quick_attach_cheat(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        return
+    mod_id = callback.data.replace("quick_attach_cheat_", "")
+    media_data = temp_admin_media.get(callback.from_user.id)
+    if not media_data:
+        await callback.answer("Файл не найден. Отправьте файл заново.", show_alert=True)
+        return
+
+    file_id = media_data["file_id"]
+    await update_module_material(mod_id, "cheatsheet_file_id", file_id)
+    await update_module_material(mod_id, "cheatsheet_text", "")
+    await update_module_material(mod_id, "cheatsheet_url", "")
+
+    mod_title = COURSE_CURRICULUM.get(mod_id, {}).get("title", mod_id)
+    await callback.answer("✅ Шпаргалка прикреплена!")
+    await callback.message.edit_text(
+        f"✅ *Шпаргалка успешно прикреплена к уроку:*\n*{mod_title}* 🚀",
+        parse_mode="Markdown"
+    )
